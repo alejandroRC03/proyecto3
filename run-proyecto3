@@ -1,0 +1,46 @@
+#!/bin/bash
+
+image_name=proyecto2
+container_name=services
+
+docker rmi -f $image_name || echo "$image_name docker image does not exist"
+echo
+
+docker build -t $image_name .
+
+sleep 1
+
+if [ -z "$1" ]; then
+    DOCKER_USER=`dev`
+else
+    DOCKER_USER=$1
+fi
+
+mynetwork=asixnet
+
+www_dir=$HOME/www/html
+data_dir=$HOME/data
+
+docker network create $mynetwork || echo "Network $mynetwork already exists"
+mkdir -p $www_dir
+mkdir -p $data_dir
+
+docker rm -f $container_name
+
+docker run \
+	--network="$mynetwork" \
+	--name="$container_name" \
+	-v $www_dir:/home/${DOCKER_USER}/www/html \
+	-v mysql_data:/var/lib/mysql \
+	-e USER=$DOCKER_USER \
+	-e PASSWORD=$DOCKER_USER \
+	-d \
+	-p 2222:22 \
+	-p 9001:9001 \
+	-p 8088:80 \
+	$image_name
+
+echo
+docker ps | grep $container_name
+echo
+exit 0
